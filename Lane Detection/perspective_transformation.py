@@ -30,14 +30,14 @@ while success:
     # success, image = vidcap.read()
     frame = cv2.resize(image,(640,480))
     
-    top_left = (270,250)
+    top_left = (265,250)
     top_right = (365,250)
     bottom_left =(0,472)
     bottom_right = (600,472)
-    cv2.circle(frame,top_left,5,(0,0,255),-1)
-    cv2.circle(frame,top_right,5,(0,0,255),-1)
-    cv2.circle(frame,bottom_left,5,(0,0,255),-1)
-    cv2.circle(frame,bottom_right,5,(0,0,255),-1)
+    # cv2.circle(frame,top_left,5,(0,0,255),-1)
+    # cv2.circle(frame,top_right,5,(0,0,255),-1)
+    # cv2.circle(frame,bottom_left,5,(0,0,255),-1)
+    # cv2.circle(frame,bottom_right,5,(0,0,255),-1)
 
     pt1 = np.float32([top_left,bottom_left,top_right,bottom_right])
     pt2 = np.float32([[0,0],[0,480],[640,0],[640,480]])
@@ -69,7 +69,7 @@ while success:
     right_base = np.argmax(histogram[midpoint:]) + midpoint
     
     #sliding window
-    y = 360 
+    y = 480 
     leftx_cords = []
     rightx_cords = []
 
@@ -89,35 +89,37 @@ while success:
     
     cv2.imshow("window", img)
     print("contours:", len(contours))
-    while y>0:
-        img = mask[y-40:y, left_base-75:left_base+100]
-        contours, _ = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        
-        
+    while y > 0:
+        # LEFT
+        lx1 = max(0, left_base - 75)
+        lx2 = min(mask.shape[1], left_base + 100)
+        img = mask[y-40:y, lx1:lx2]
+        contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             M = cv2.moments(contour)
             if M["m00"] != 0:
-                cx = int(M["m10"    ]/M["m00"])
-                cy = int(M["m01"]/M["m00"])
-                leftx_cords.append(left_base-75 + cx)
-                left_base = left_base-75 + cx
+                cx = int(M["m10"] / M["m00"])
+                leftx_cords.append(lx1 + cx)   # use lx1, not left_base - 75
+                left_base = lx1 + cx
 
-        img = mask[y-40:y, right_base-100:right_base+75]
-        contours, _ = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    
+        # RIGHT
+        rx1 = max(0, right_base - 100)
+        rx2 = min(mask.shape[1], right_base + 75)
+        img = mask[y-40:y, rx1:rx2]
+        contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
         for contour in contours:
             M = cv2.moments(contour)
             if M["m00"] != 0:
-                cx = int(M["m10"]/M["m00"])
-                cy = int(M["m01"]/M["m00"])
-                rightx_cords.append(right_base-100 + cx)
-                right_base = right_base-100 + cx
+                cx = int(M["m10"] / M["m00"])
+                rightx_cords.append(rx1 + cx)  # use rx1, not right_base - 100
+                right_base = rx1 + cx
 
-        cv2.rectangle(mask_copy,(left_base-75,y),(left_base+100,y-40),(255,255,255),2)
-        cv2.rectangle(mask_copy,(right_base-100,y),(right_base+75,y-40),(255,255,255),2)
+        cv2.rectangle(mask_copy, (lx1, y), (lx2, y-40), (255,255,255), 2)
+        cv2.rectangle(mask_copy, (rx1, y), (rx2, y-40), (255,255,255), 2)
 
-        y-=40
+        y -= 40
 
     if len(leftx_cords):
        prevlx = leftx_cords
@@ -213,11 +215,11 @@ while success:
     inversed_orignal_frame = cv2.warpPerspective(transformed_frame, inv_matrix, (640,480))
  
  
-    # result = cv2.addWeighted(frame, 1, inversed_orignal_frame, 0.5, 0)
-    # cv2.line(result, (320, 480), (end_x, end_y), (255, 0, 0), 2)
-    # cv2.putText(result, f'Curvature: {curvature:.2f} m', (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    # cv2.putText(result, f'Offset: {lane_offset:.2f} m', (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    # cv2.putText(result, f'Angle: {steering_angle:.2f} deg', (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    result = cv2.addWeighted(frame, 1, inversed_orignal_frame, 0.5, 0)
+    cv2.line(result, (320, 480), (end_x, end_y), (255, 0, 0), 2)
+    cv2.putText(result, f'Curvature: {curvature:.2f} m', (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    cv2.putText(result, f'Offset: {lane_offset:.2f} m', (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    cv2.putText(result, f'Angle: {steering_angle:.2f} deg', (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
 
     cv2.line(mask_copy, (left_base, 480), (left_base, 0), 255, 2)

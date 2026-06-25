@@ -24,11 +24,11 @@ class LaneDetectorSlidingWindow:
         self.Upper_V = 255
         
         self.top_left = (270,240)
-        self.top_right = (365,240)
+        self.top_right = (380,240)
         self.bottom_left = (0,472)
         self.bottom_right = (600,472)
     
-        self.window_width = 100
+        self.window_width = 50
 
         self.pt1 = np.float32([self.top_left,self.bottom_left,self.top_right,self.bottom_right])
         self.pt2 = np.float32([[0,0],[0,self.height],[self.width,0],[self.width,self.height]])
@@ -105,31 +105,37 @@ class LaneDetectorSlidingWindow:
         rightx_cords = []
         mask_copy = mask.copy()
 
-        while y>0:
-            img = mask[y-40:y, self.left_base-self.window_width:self.left_base+self.window_width]
-            contours, _ = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        while y > 0:
+            # LEFT
+            lx1 = max(0, self.left_base - 75)
+            lx2 = min(mask.shape[1], self.left_base + 100)
+            img = mask[y-40:y, lx1:lx2]
+            contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
             for contour in contours:
                 M = cv2.moments(contour)
                 if M["m00"] != 0:
-                    cx = int(M["m10"    ]/M["m00"])
-                    cy = int(M["m01"]/M["m00"])
-                    leftx_cords.append(self.left_base-self.window_width + cx)
-                    self.left_base = self.left_base-self.window_width + cx
+                    cx = int(M["m10"] / M["m00"])
+                    leftx_cords.append(lx1 + cx)   # use lx1, not left_base - 75
+                    self.left_base = lx1 + cx
 
-            img = mask[y-40:y, self.right_base-self.window_width:self.right_base+self.window_width]
-            contours, _ = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+            # RIGHT
+            rx1 = max(0, self.right_base - 75)
+            rx2 = min(mask.shape[1], self.right_base + 75)
+            img = mask[y-40:y, rx1:rx2]
+            contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
             for contour in contours:
                 M = cv2.moments(contour)
                 if M["m00"] != 0:
-                    cx = int(M["m10"]/M["m00"])
-                    cy = int(M["m01"]/M["m00"])
-                    rightx_cords.append(self.right_base-self.window_width + cx)
-                    self.right_base = self.right_base-self.window_width + cx
+                    cx = int(M["m10"] / M["m00"])
+                    rightx_cords.append(rx1 + cx)  # use rx1, not right_base - 100
+                    self.right_base = rx1 + cx
 
-            cv2.rectangle(mask_copy,(self.left_base-self.window_width,y),(self.left_base+self.window_width,y-40),(255,255,255),2)
-            cv2.rectangle(mask_copy,(self.right_base-self.window_width,y),(self.right_base+self.window_width,y-40),(255,255,255),2)
+            cv2.rectangle(mask_copy, (lx1, y), (lx2, y-40), (255,255,255), 2)
+            cv2.rectangle(mask_copy, (rx1, y), (rx2, y-40), (255,255,255), 2)
 
-            y-=40
+            y -= 40
         if len(leftx_cords):
             self.prevlx = leftx_cords
         else:
